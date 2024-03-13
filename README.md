@@ -6,7 +6,7 @@
 ## How to run:
 Download as zip, unzip and run the executable file My_First_RPG.exe from Build folder 
 
-# Important!
+# IMPORTANT❗❗❗
 ## Instructions / tutorial:
 * I haven't created the menus yet so the game starts automatically and you will need alt-f4 to exit💀.
 * Right click to move and attack 🤺.
