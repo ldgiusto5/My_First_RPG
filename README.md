@@ -1,7 +1,7 @@
 # This is my first RPG video game as a game developer.
 
 
-![Gif](https://github.com/ldgiusto5/My_First_RPG/assets/121044004/c07c0470-21cc-4112-b7d2-91a9c7ec7398)
+![My-First-RPG-Gif](https://github.com/ldgiusto5/My_First_RPG/assets/121044004/c24200d4-8327-4e4d-b474-b763a9022d79)
 
 ## How to run:
 Download as zip, unzip and run the executable file My_First_RPG.exe from Build folder.
