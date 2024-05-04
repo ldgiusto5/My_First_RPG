@@ -9,7 +9,7 @@ Scripts folder is unnecessary to run the program, it is only for those who are i
 
 # IMPORTANT❗❗❗
 ## Instructions / tutorial:
-* I haven't created the menus yet so the game starts automatically and you will need alt-f4 to exit💀.
+* I haven't created the menus yet so the game starts automatically and you will need to press esc to exit 💀.
 * Right click to move and attack 🤺.
 * You need a sword to pass to the second screen, look for it 🔎.
 * When you get more than one weapon you can switch back to Sword with Q, Bow with W and Fireball with E 🔥.
