@@ -11,15 +11,22 @@ namespace RPG.Saving
 {
     public class SavingSystem : MonoBehaviour
     {
-		[RuntimeInitializeOnLoadMethod]
-
-		public static void OnLoad()
+		void OnApplicationQuit()
 		{
 			string saveFile = "save";
 			string path = Path.Combine(Application.persistentDataPath, saveFile + ".sav");
 			if (File.Exists(path))
 			{
 				File.Delete(path);
+			}
+			Debug.Log("Application ending after " + Time.time + " seconds");
+		}
+
+		void Update()
+		{
+			if (Input.GetKey("escape"))
+			{
+				Application.Quit();
 			}
 		}
 
@@ -47,12 +54,12 @@ namespace RPG.Saving
             RestoreState(LoadFile(saveFile));
         }
 
-        public void Delete(string saveFile)
-        {
-            File.Delete(GetPathFromSaveFile(saveFile));
-        }
+		public void Delete(string saveFile)
+		{
+			File.Delete(GetPathFromSaveFile(saveFile));
+		}
 
-        private Dictionary<string, object> LoadFile(string saveFile)
+		private Dictionary<string, object> LoadFile(string saveFile)
         {
             string path = GetPathFromSaveFile(saveFile);
             if (!File.Exists(path))

@@ -4,33 +4,45 @@ using Unity.VisualScripting;
 using UnityEngine;
 using RPG.Movement;
 using RPG.Core;
-using System.Transactions;
+using RPG.Attributes;
 using RPG.Saving;
+using RPG.Stats;
+using RPG.Utils;
 using System;
+using System.Transactions;
 
 namespace RPG.Combat
 {
-	public class Fighter : MonoBehaviour , IAction, ISaveable
+	public class Fighter : MonoBehaviour, IAction, ISaveable, IModifierProvider
 	{
 		[SerializeField] float timeBetweenAttacks = 1f;
 		[SerializeField] Transform rightHandTransform = null;
 		[SerializeField] Transform leftHandTransform = null;
-		[SerializeField] Weapon defaultWeapon = null;
+		[SerializeField] WeaponConfig defaultWeapon = null;
 		[SerializeField] float moreRange = 0f;
 
 		Health target;
 		float timeSienceLastAttack = 0;
-		public Weapon currentWeapon = null;
 		bool hadSword = false;
 		bool hadBow = false;
 		bool hadFireball = false;
+		public WeaponConfig currentWeaponConfig;
+		LazyValue<Weapon> currentWeapon;
 
 		private void Awake()
 		{
-			if (currentWeapon == null)
-			{
-				EquipWeapon(defaultWeapon);
-			}
+			currentWeaponConfig = defaultWeapon;
+			currentWeapon = new LazyValue<Weapon>(SetupDefaultWeapon);
+		}
+
+		private Weapon SetupDefaultWeapon()
+		{
+			return AttachWeapon(defaultWeapon);
+		}
+
+		private void Start()
+		{
+			currentWeapon.ForceInit();
 		}
 
 		private void Update()
@@ -41,7 +53,7 @@ namespace RPG.Combat
 			{
 				if (hadSword == true)
 				{
-					Weapon weapon = Resources.Load<Weapon>("Sword");
+					WeaponConfig weapon = Resources.Load<WeaponConfig>("Sword");
 					EquipWeapon(weapon);
 				}
 			}
@@ -49,7 +61,7 @@ namespace RPG.Combat
 			{
 				if (hadBow == true)
 				{
-					Weapon weapon = Resources.Load<Weapon>("Bow Blue Projectile");
+					WeaponConfig weapon = Resources.Load<WeaponConfig>("Bow Blue Projectile");
 					EquipWeapon(weapon);
 				}
 			}
@@ -57,12 +69,16 @@ namespace RPG.Combat
 			{
 				if (hadFireball == true)
 				{
-					Weapon weapon = Resources.Load<Weapon>("Fireball");
+					WeaponConfig weapon = Resources.Load<WeaponConfig>("Fireball");
 					EquipWeapon(weapon);
 				}
 			}
 			if (target == null) return;
-			if (target.IsDead()) return;
+			if (target.IsDead()) 
+			{
+				Cancel();
+				return;
+			}
 
 			if (!GetIsInRange())
 			{
@@ -75,8 +91,15 @@ namespace RPG.Combat
 			}
 		}
 
+		public Health GetTarget()
+		{
+			return target;
+		}
+
+
 		private void AttackBehavior()
 		{
+			
 			transform.LookAt(target.transform);
 			if (timeSienceLastAttack > timeBetweenAttacks)
 			{
@@ -96,17 +119,22 @@ namespace RPG.Combat
 		void Hit()
 		{
 			if (target == null) return;
-			if (currentWeapon.HasProjectile())
+			float damage = GetComponent<BaseStats>().GetStat(Stat.Damage);
+			if (currentWeapon.value != null)
 			{
-				currentWeapon.LaunchProjectile(rightHandTransform, leftHandTransform, target);
+				currentWeapon.value.OnHit();
+			}
+			if (currentWeaponConfig.HasProjectile())
+			{
+				currentWeaponConfig.LaunchProjectile(rightHandTransform, leftHandTransform, target, gameObject, damage);
 			}
 			else
 			{
-				if (currentWeapon.HasEffect() != null)
+				if (currentWeaponConfig.HasEffect() != null)
 				{
-					Instantiate(currentWeapon.HasEffect(), target.transform.position, target.transform.rotation);
+					Instantiate(currentWeaponConfig.HasEffect(), target.transform.position, target.transform.rotation);
 				}
-				target.TakeDamage(currentWeapon.GetDamage());
+				target.TakeDamage(gameObject, damage);
 			}
 		}
 
@@ -122,8 +150,9 @@ namespace RPG.Combat
 
 		public float TotalRange()
 		{
-			return currentWeapon.GetRange() + moreRange;
+			return currentWeaponConfig.GetRange() + moreRange;
 		}
+
 		public bool CanAttack(GameObject combatTarget)
 		{
 			if (combatTarget == null) { return false; }
@@ -150,23 +179,44 @@ namespace RPG.Combat
 			GetComponent<Animator>().SetTrigger("stopAttack");
 		}
 
-		public void EquipWeapon(Weapon weapon)
+		public IEnumerable<float> GetAdditiveModifiers(Stat stat)
 		{
-			currentWeapon = weapon;
-			if (currentWeapon.name == "Sword")
+			if (stat == Stat.Damage)
+			{
+				yield return currentWeaponConfig.GetDamage();
+			}
+		}
+
+		public IEnumerable<float> GetPercentageModifiers(Stat stat)
+		{
+			if (stat == Stat.Damage)
+			{
+				yield return currentWeaponConfig.GetPercentageBonus();
+			}
+		}
+
+		public void EquipWeapon(WeaponConfig weapon)
+		{
+			currentWeaponConfig = weapon;
+			if (currentWeaponConfig.name == "Sword")
 			{
 				hadSword = true;
 			}
-			if (currentWeapon.name == "Bow Blue Projectile")
+			if (currentWeaponConfig.name == "Bow Blue Projectile")
 			{
 				hadBow = true;
 			}
-			if (currentWeapon.name == "Fireball")
+			if (currentWeaponConfig.name == "Fireball")
 			{
 				hadFireball = true;
 			}
+			currentWeapon.value = AttachWeapon(weapon);
+		}
+
+		private Weapon AttachWeapon(WeaponConfig weapon)
+		{
 			Animator animator = GetComponent<Animator>();
-			weapon.Spawn(rightHandTransform, leftHandTransform, animator);
+			return weapon.Spawn(rightHandTransform, leftHandTransform, animator);
 		}
 
 		[System.Serializable]
@@ -181,7 +231,7 @@ namespace RPG.Combat
 		public object CaptureState()
 		{
 			FighterSaveData data = new FighterSaveData();
-			data.name = currentWeapon.name;
+			data.name = currentWeaponConfig.name;
 			data.saveHadSword = hadSword;
 			data.saveHadBow = hadBow;
 			data.saveHadFireball = hadFireball;
@@ -191,7 +241,7 @@ namespace RPG.Combat
 		public void RestoreState(object state)
 		{
 			FighterSaveData data = (FighterSaveData)state;
-			Weapon weapon = Resources.Load<Weapon>(data.name);
+			WeaponConfig weapon = Resources.Load<WeaponConfig>(data.name);
 			EquipWeapon(weapon);
 			hadSword = data.saveHadSword;
 			hadBow = data.saveHadBow;

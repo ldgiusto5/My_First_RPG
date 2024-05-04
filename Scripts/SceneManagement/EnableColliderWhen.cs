@@ -7,7 +7,7 @@ namespace RPG.SceneManagement
 	//For first portal
 	public class EnableColliderWhen : MonoBehaviour
 	{
-		[SerializeField] Weapon weaponToEnable = null;
+		[SerializeField] WeaponConfig weaponToEnable = null;
 		GameObject player;
 		void Start()
 	    {
@@ -17,7 +17,7 @@ namespace RPG.SceneManagement
 	    void Update()
 	    {
 			if (GetComponent<BoxCollider>().enabled == true) return;
-			else if(player.GetComponent<Fighter>().currentWeapon != weaponToEnable)
+			else if(player.GetComponent<Fighter>().currentWeaponConfig != weaponToEnable)
 			{
 				GetComponent<BoxCollider>().enabled = true;
 			}
